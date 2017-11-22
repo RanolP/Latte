@@ -1,5 +1,5 @@
 [![semver](https://img.shields.io/badge/semver-2.0.0-green.svg)](http://semver.org/spec/v2.0.0.html)
-[![Travis](https://img.shields.io/travis/LatteLang/Latte.svg)](https://github.com/LatteLang/Latte)
+[![Travis](https://img.shields.io/travis/LatteLang/Latte.svg)](https://travis-ci.org/LatteLang/Latte)
 [![License](https://img.shields.io/github/license/LatteLang/Latte.svg)](https://opensource.org/licenses/MIT)
 [![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/LatteLang/Latte.svg)](https://github.com/LatteLang/Latte)
 [![works badge](https://cdn.rawgit.com/nikku/works-on-my-machine/v0.2.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
