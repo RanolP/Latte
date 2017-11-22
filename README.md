@@ -2,6 +2,7 @@
 [![Travis](https://img.shields.io/travis/LatteLang/Latte.svg)](https://github.com/LatteLang/Latte)
 [![License](https://img.shields.io/github/license/LatteLang/Latte.svg)](https://opensource.org/licenses/MIT)
 [![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/LatteLang/Latte.svg)](https://github.com/LatteLang/Latte)
+[![works badge](https://cdn.rawgit.com/nikku/works-on-my-machine/v0.2.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
 
 # Latte
 Lazy, Advanced, Test-friendly, exTensible, Effective
