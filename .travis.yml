@@ -1,0 +1,11 @@
+language: java
+before_install:
+- chmod +x gradlew
+deploy:
+  provider: releases
+  api_key:
+    secure: S0LJDJ++oCPYv3T9WI1DRRpncu5Mf2eN7mntuVWT91HXlkughqliMdKey4bTPgNbRnWtrIoq6doXa8+bfT+fwC5C9CjntzhWo+PsCNzXP3HbuqAyd0teX2e3QknZocYgSvFMO1onqxfYkRt5/YlUmHJzofJJuU+IsGPUA6oa7cxJYvGik107Z/c56XUlxV3TXePDR0XKWRSHK4FeuknaNainIeHWmQ3oVqX+77Q8zeFRNdnB8oAQe+p0tTj3DkJwYpGKwCtsXrTwPEDy6HduARFtQmxg2ZSixw8/bluOmChO1exkqxhjTJeK4L9boxfzO/bG4gp3J6ZLG/N0R6cQOXt5FbCMaWHL/4TD3Zq3aL5HDucl4wgL2nma7pedivvUMSrTyfAc1zNLEtVH7fVjeOVtXFXzRmZfAQqSUxLCeDJiWjIBITmTWkN+P6LCFm/Dj0W7ScMfgHmx2c1q7v+eDYYhI8iSRM3xuonpHogxc4Oxm/7UxLD8J192FijRYI9iYHQdg7ALRgsKolA9Py8LxDyMVqicUABtj6xtQqDobkJ+JSHNZR7MF8OFocHFChR++c8y9RRjoqnQuLPSlamIBlrDlW9Qqs4l/QJccJTP/R9Xvk2qlBgW88K2/oJeQn7CErRoeLdrCm1xg4C2ws14aNR+awikmKyvTQbNO/+fd/w=
+  file: build/libs/latte.jar
+  on:
+    repo: LatteLang/Latte
+    tags: true
