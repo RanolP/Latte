@@ -5,76 +5,8 @@ import io.github.ranolp.latte.compiler.core.TokenType
 import java.lang.StringBuilder
 
 object Lexer {
-    private val TYPES = mapOf('+' to TokenType.PLUS,
-            '-' to TokenType.MINUS,
-            '*' to TokenType.ASTERISK,
-            '/' to TokenType.SLASH,
-            '%' to TokenType.PERCENT,
-            '&' to TokenType.AND,
-            '|' to TokenType.OR,
-            '?' to TokenType.QUESTION,
-            ':' to TokenType.COLON,
-            ';' to TokenType.SEMICOLON,
-            '\n' to TokenType.SEMICOLON,
-            '.' to TokenType.DOT,
-            ',' to TokenType.COMMA,
-            '!' to TokenType.EXCLAMATION,
-            '(' to TokenType.LEFT_BRACKET,
-            ')' to TokenType.RIGHT_BRACKET,
-            '[' to TokenType.LEFT_BRACE,
-            ']' to TokenType.RIGHT_BRACE,
-            '{' to TokenType.LEFT_CURLY_BRACE,
-            '}' to TokenType.RIGHT_CURLY_BRACE,
-            '=' to TokenType.ASSIGN)
-    private val KEYWORDS = mapOf("abstract" to TokenType.ABSTRACT,
-            "as" to TokenType.AS,
-            "break" to TokenType.BREAK,
-            "case" to TokenType.CASE,
-            "catch" to TokenType.CATCH,
-            "class" to TokenType.CLASS,
-            "companion" to TokenType.COMPANION,
-            "const" to TokenType.CONST,
-            "continue" to TokenType.CONTINUE,
-            "crossinline" to TokenType.CROSSINLINE,
-            "data" to TokenType.DATA,
-            "dynamic" to TokenType.DYNAMIC,
-            "else" to TokenType.ELSE,
-            "enum" to TokenType.ENUM,
-            "false" to TokenType.FALSE,
-            "finally" to TokenType.FINALLY,
-            "fn" to TokenType.FN,
-            "for" to TokenType.FOR,
-            "get" to TokenType.GET,
-            "if" to TokenType.IF,
-            "import" to TokenType.IMPORT,
-            "in" to TokenType.IN,
-            "infix" to TokenType.INFIX,
-            "inner" to TokenType.INNER,
-            "interface" to TokenType.INTERFACE,
-            "is" to TokenType.IS,
-            "lateinit" to TokenType.LATEINIT,
-            "let" to TokenType.LET,
-            "mut" to TokenType.MUT,
-            "noinline" to TokenType.NOINLINE,
-            "null" to TokenType.NULL,
-            "object" to TokenType.OBJECT,
-            "open" to TokenType.OPEN,
-            "operator" to TokenType.OPERATOR,
-            "out" to TokenType.OUT,
-            "override" to TokenType.OVERRIDE,
-            "package" to TokenType.PACKAGE,
-            "private" to TokenType.PRIVATE,
-            "protected" to TokenType.PROTECTED,
-            "public" to TokenType.PUBLIC,
-            "reified" to TokenType.REIFIED,
-            "return" to TokenType.RETURN,
-            "set" to TokenType.SET,
-            "super" to TokenType.SUPER,
-            "this" to TokenType.THIS,
-            "true" to TokenType.TRUE,
-            "try" to TokenType.TRY,
-            "when" to TokenType.WHEN,
-            "while" to TokenType.WHILE)
+    private val TYPES: Map<Char, TokenType> = TokenType.values().filter { it.operator != null }.associateBy { it.operator!! }
+    private val KEYWORDS: Map<String, TokenType> = TokenType.values().filter { it.keyword }.associateBy { it.toString() }
 
     private fun query(line: String, from: Int): Pair<String, TokenType>? {
         if (from > 0 && !line[from - 1].isWhitespace()) {
@@ -108,7 +40,10 @@ object Lexer {
         var line = 0
         fun flush(position: Int) {
             if (unknownBuilder.isNotEmpty()) {
-                result.add(Token(TokenType.UNKNOWN, unknownBuilder.toString(), line, position - unknownBuilder.length))
+                result.add(Token(TokenType.IDENTIFIER,
+                        unknownBuilder.toString(),
+                        line,
+                        position - unknownBuilder.length))
                 unknownBuilder.setLength(0)
             }
         }
