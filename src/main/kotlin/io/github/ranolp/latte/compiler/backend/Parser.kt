@@ -12,9 +12,9 @@ object Parser {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val int = INTEGER(::IntNode)
-        val decimal = DECIMAL(::DecimalNode)
-        val string = STRING(::StringNode)
+        val int = INTEGER(::IntNode, "IntNode")
+        val decimal = DECIMAL(::DecimalNode, "DecimalNode")
+        val string = STRING(::StringNode, "StringNode")
         val typeDecl = IDENTIFIER + COLON + IDENTIFIER
         val expression = Syntax()
         val block = Syntax()
@@ -23,6 +23,9 @@ object Parser {
         val funcDecl = FN + IDENTIFIER + (LEFT_BRACKET + typeDecl.zeroOrMore + RIGHT_BRACKET).able + block
         val packageDecl = PACKAGE + IDENTIFIER.more
 
+        println(int.debug())
+        println(decimal.debug())
+        println(string.debug())
         println(typeDecl)
         println(varDecl)
         println(funcDecl)
@@ -76,10 +79,19 @@ object Parser {
             get() = SyntaxToken(tokenType).also {
                 it.flag = flag
             }
+        var tree: ChildTree? = null
 
 
-        fun asLALR(initializer: (Token) -> Node?) {
-            ChildTree(tokenType, { initializer(it[0]) })
+        fun asLALR(initializer: (Token) -> Node?, name: String = "Unnamed", register: Boolean = false): ChildTree {
+            val tree = this.tree
+            return if (tree == null) {
+                val child = ChildTree(tokenType, { initializer(it[0]) }, name)
+                if (register) {
+                    root.children += child
+                }
+                this.tree = child
+                child
+            } else tree
         }
 
         operator fun plus(syntaxToken: SyntaxToken): Syntax = Syntax().also {
@@ -108,6 +120,11 @@ object Parser {
                 it.parts.addAll(parts.map { it.self })
             }
         val parts = mutableListOf<SyntaxPart>()
+
+        fun asLALR(initializer: (Token) -> Node?, name: String = "Unnamed", register: Boolean = false): ParentTree {
+           TODO()
+        }
+
         operator fun plus(syntaxToken: SyntaxToken): Syntax = Syntax().also {
             it.parts.add(this)
             it.parts.add(syntaxToken)
@@ -126,7 +143,9 @@ object Parser {
         override fun toString(): String = (if (flagged) "(" else "") + parts.joinToString(" ") + (if (flagged) ")" else "") + flagToString
     }
 
-    private operator fun TokenType.invoke(task: (Token) -> Node) = SyntaxToken(this).asLALR(task)
+    private operator fun TokenType.invoke(task: (Token) -> Node, name: String = "Unnamed") = SyntaxToken(this).asLALR(
+            task,
+            name)
 
     private operator fun TokenType.plus(tokenType: TokenType) = SyntaxToken(this) + tokenType
     private operator fun TokenType.plus(syntaxToken: SyntaxToken) = SyntaxToken(this) + syntaxToken
@@ -141,9 +160,10 @@ object Parser {
 
     private interface LALRTree {
         fun match(tokens: List<Token>, from: Int = 0, cursor: Int = 0): Node?
+        fun debug(depth: Int = 0): String
     }
 
-    private open class ParentTree : LALRTree {
+    private open class ParentTree(val name: String = "Unnamed") : LALRTree {
         val children: MutableList<LALRTree> = mutableListOf()
         override fun match(tokens: List<Token>, from: Int, cursor: Int): Node? {
             for (child in children) {
@@ -153,12 +173,19 @@ object Parser {
             }
             return null
         }
+
+        override fun debug(depth: Int): String = " " * depth + "$name -> \n" + children.joinToString("\n") {
+            it.debug(depth + 1)
+        }
     }
 
-    private class ChildTree(val tokenType: TokenType, val generator: (List<Token>) -> Node?) : LALRTree {
+    private class ChildTree(val tokenType: TokenType, val generator: (List<Token>) -> Node?,
+            val name: String = "Unnamed") : LALRTree {
         override fun match(tokens: List<Token>, from: Int,
                 cursor: Int): Node? = if (tokens[cursor].type == tokenType) generator(tokens.subList(from,
                 cursor)) else null
+
+        override fun debug(depth: Int) = " " * depth + "$tokenType -> $name"
     }
 
     private val root = ParentTree()
