@@ -30,7 +30,8 @@ Latte 는 적은 추가 런타임 라이브러리를 지향하고, 소스 간 �
  * \u 이스케이프 시퀀스 지원
 
 ### Parser
- * 구현
+ * Syntax 객체를 LALR Parsing Table로 변환하기
+ * LALR Parsing Table 가지고 파싱하기
 
 ### Code Generator
  * 구현
