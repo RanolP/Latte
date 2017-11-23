@@ -6,7 +6,7 @@ import java.lang.StringBuilder
 
 object Lexer {
     private val TYPES: Map<Char, TokenType> = TokenType.values().filter { it.operator != null }.associateBy { it.operator!! }
-    private val KEYWORDS: Map<String, TokenType> = TokenType.values().filter { it.keyword }.associateBy { it.toString() }
+    private val KEYWORDS: Map<String, TokenType> = TokenType.values().filter { it.keyword }.associateBy { it.name.toLowerCase() }
 
     private fun query(line: String, from: Int): Pair<String, TokenType>? {
         if (from > 0 && !line[from - 1].isWhitespace()) {
