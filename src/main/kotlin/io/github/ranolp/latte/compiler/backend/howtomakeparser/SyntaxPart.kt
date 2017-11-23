@@ -5,6 +5,7 @@ import io.github.ranolp.latte.compiler.core.Token
 
 interface SyntaxPart<out T : SyntaxPart<T>> {
     var mapping: ((List<Token>) -> Node?)?
+    var name: String
     var flag: Int
     val self: T
     val able: T
@@ -31,15 +32,18 @@ interface SyntaxPart<out T : SyntaxPart<T>> {
         get() = flag != 0
 
     private fun stringfy(flags: Flags, string: String) = if (flagged(flags)) string else ""
-    val flagToString
-        get() = stringfy(Flags.ABLE, "?") + stringfy(Flags.ZERO_OR_MORE, "*") + stringfy(
-                Flags.MORE, "+")
+    val flagToString: String
+        get() = stringfy(Flags.ABLE, "?") + stringfy(Flags.ZERO_OR_MORE, "*") + stringfy(Flags.MORE, "+")
 
     fun debug(): String
 
     operator fun plus(syntaxPart: SyntaxPart<*>): Syntax
 
-    operator fun invoke(mapper: (List<Token>) -> Node) {
+    operator fun invoke(name: String? = null, mapper: (List<Token>) -> Node?): T {
+        if (name != null) {
+            this.name = name
+        }
         mapping = mapper
+        return self
     }
 }
