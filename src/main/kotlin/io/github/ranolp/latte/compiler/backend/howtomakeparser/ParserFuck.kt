@@ -5,6 +5,7 @@ import io.github.ranolp.latte.compiler.backend.core.ast.IntNode
 import io.github.ranolp.latte.compiler.backend.core.ast.Node
 import io.github.ranolp.latte.compiler.backend.core.ast.StringNode
 import io.github.ranolp.latte.compiler.backend.howtomakeparser.tree.ParentTree
+import io.github.ranolp.latte.compiler.backend.howtomakeparser.tree.toLALRTree
 import io.github.ranolp.latte.compiler.core.Token
 import io.github.ranolp.latte.compiler.core.TokenType.*
 
@@ -25,6 +26,7 @@ fun main(args: Array<String>) {
     println(packageDecl.debug())
     println(variableDecl.debug())
     println(functionDecl.debug())
+    println(packageDecl.toLALRTree().debug())
 }
 
 object ParserFuck {
