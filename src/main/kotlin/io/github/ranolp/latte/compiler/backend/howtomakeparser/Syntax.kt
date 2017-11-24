@@ -37,6 +37,8 @@ sealed class SyntaxPart<out T : SyntaxPart<T>> {
 
     abstract fun debug(): String
 
+    infix fun or(singleSyntaxPart: SingleSyntaxPart<*>): OrSyntax = OrSyntax(this, singleSyntaxPart)
+
     abstract operator fun plus(syntaxPart: SyntaxPart<*>): Syntax
 
     operator fun invoke(name: String? = null, mapper: (List<Token>) -> Node?): T {
@@ -46,26 +48,30 @@ sealed class SyntaxPart<out T : SyntaxPart<T>> {
         mapping = mapper
         return self
     }
+    abstract fun match(tokenType: TokenType): Boolean
 }
 
-private fun SyntaxPart<*>.toList(): List<SimpleSyntax> = when (this) {
+sealed class SingleSyntaxPart<out T : SingleSyntaxPart<T>> : SyntaxPart<T>() {
+}
+
+private fun SyntaxPart<*>.toList(): List<SingleSyntaxPart<*>> = when (this) {
     is Syntax -> parts
-    is SimpleSyntax -> listOf(this)
+    is SingleSyntaxPart<*> -> listOf(this)
 }
 
-class Syntax(val head: SimpleSyntax, val tails: List<SimpleSyntax>) : SyntaxPart<Syntax>() {
+class Syntax(val head: SingleSyntaxPart<*>, val tails: List<SingleSyntaxPart<*>>) : SyntaxPart<Syntax>() {
     val parts by lazy {
         listOf(head) + tails
     }
     override val self by lazy {
         Syntax(head, tails.map { it.self }).also {
             it.mapping = mapping
-            it.flag = flag
             it.name = name
+            it.flag = flag
         }
     }
 
-    constructor(left: SimpleSyntax, right: SyntaxPart<*>) : this(left, right.toList())
+    constructor(left: SingleSyntaxPart<*>, right: SyntaxPart<*>) : this(left, right.toList())
 
 
     override fun debug(): String = parts.joinToString(" ") { it.debug() }.let {
@@ -84,7 +90,7 @@ class Syntax(val head: SimpleSyntax, val tails: List<SimpleSyntax>) : SyntaxPart
 }
 
 
-class SimpleSyntax(val tokenType: TokenType) : SyntaxPart<SimpleSyntax>() {
+class SimpleSyntax(val tokenType: TokenType) : SingleSyntaxPart<SimpleSyntax>() {
     override val self by lazy {
         SimpleSyntax(tokenType).also {
             it.mapping = mapping
@@ -105,4 +111,22 @@ class SimpleSyntax(val tokenType: TokenType) : SyntaxPart<SimpleSyntax>() {
     }
 
     override fun hashCode(): Int = 31 * tokenType.hashCode() + flag
+
+    override fun match(tokenType: TokenType): Boolean = tokenType == this.tokenType
+}
+
+class OrSyntax(val left: SingleSyntaxPart<*>, val right: SingleSyntaxPart<*>) : SingleSyntaxPart<OrSyntax>() {
+    override val self by lazy {
+        OrSyntax(left, right).also {
+            it.mapping = mapping
+            it.name = name
+            it.flag = flag
+        }
+    }
+
+    override fun debug(): String = "(${left.debug()} | ${right.debug()})$flagToString" + if (mapping != null) " → $name" else ""
+
+    override fun plus(syntaxPart: SyntaxPart<*>): Syntax = Syntax(this, syntaxPart)
+
+    override fun match(tokenType: TokenType): Boolean = left.match(tokenType) || right.match(tokenType)
 }

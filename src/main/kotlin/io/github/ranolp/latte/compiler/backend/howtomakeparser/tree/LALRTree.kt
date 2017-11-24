@@ -1,7 +1,7 @@
 package io.github.ranolp.latte.compiler.backend.howtomakeparser.tree
 
 import io.github.ranolp.latte.compiler.backend.core.ast.Node
-import io.github.ranolp.latte.compiler.backend.howtomakeparser.SimpleSyntax
+import io.github.ranolp.latte.compiler.backend.howtomakeparser.SingleSyntaxPart
 import io.github.ranolp.latte.compiler.backend.howtomakeparser.Syntax
 import io.github.ranolp.latte.compiler.backend.howtomakeparser.SyntaxPart
 import io.github.ranolp.latte.compiler.backend.howtomakeparser.flagToString
@@ -14,11 +14,13 @@ sealed class LALRTree {
     abstract fun debug(depth: Int = 0): String
 }
 
-class ParentTree(val name: String, val tokenType: TokenType? = null, val flag: Int = 0) : LALRTree() {
+class ParentTree(val name: String, singleSyntaxPart: SingleSyntaxPart<*>? = null, val flag: Int = 0) : LALRTree() {
     val children: MutableList<LALRTree> = mutableListOf()
+    private val matcher: ((TokenType) -> Boolean)? = if (singleSyntaxPart != null) singleSyntaxPart!!::match else null
     override fun match(tokens: List<Token>, from: Int, cursor: Int): Node? {
         var cursor = cursor
-        if (tokenType == null || (tokens[cursor].type == tokenType && tokens.size > cursor + 1).also { if (it) cursor++ }) {
+        val matcher = matcher
+        if (matcher == null || (matcher(tokens[cursor].type) && tokens.size > cursor + 1).also { if (it) cursor++ }) {
             for (child in children) {
                 child.match(tokens, cursor)?.let {
                     return it
@@ -32,37 +34,43 @@ class ParentTree(val name: String, val tokenType: TokenType? = null, val flag: I
         children += syntaxPart.toLALRTree()
     }
 
+    fun reduce() {
+
+    }
+
     override fun debug(
             depth: Int): String = " " * depth + "$name${flag.flagToString} -> \n" + children.joinToString("\n") {
         it.debug(depth + 1)
     }
 }
 
-class ChildTree(val tokenType: TokenType, val generator: (List<Token>) -> Node?, val name: String = "Unnamed",
-        val flag: Int) : LALRTree() {
-    override fun match(tokens: List<Token>, from: Int,
-            cursor: Int): Node? = if (tokens[cursor].type == tokenType) generator(tokens.subList(from,
-            cursor)) else null
+class ChildTree(singleSyntaxPart: SingleSyntaxPart<*>, val name: String = "Unnamed", val flag: Int) : LALRTree() {
+    val matcher: (TokenType) -> Boolean = singleSyntaxPart::match
+    val debugName: String = singleSyntaxPart.debug()
+    val generator = singleSyntaxPart.mapping ?: throw IllegalArgumentException("Syntax does not have generator")
 
-    override fun debug(depth: Int) = " " * depth + "$tokenType${flag.flagToString} -> $name"
+    override fun match(tokens: List<Token>, from: Int,
+            cursor: Int): Node? = if (matcher(tokens[cursor].type)) generator(tokens.subList(from, cursor)) else null
+
+    override fun debug(depth: Int) = " " * depth + "$debugName${flag.flagToString} -> $name"
 }
 
 fun SyntaxPart<*>.toLALRTree(): LALRTree = when (this) {
-    is SimpleSyntax -> {
+    is SingleSyntaxPart<*> -> {
         val generator = mapping ?: throw IllegalArgumentException("Syntax does not have generator")
-        ChildTree(tokenType, generator, name, flag)
+        ChildTree(this, name, flag)
     }
     is Syntax -> {
-        val parent = ParentTree(head.tokenType.toString(), head.tokenType, flag)
+        val parent = ParentTree(head.debug(), head, flag)
         var current: ParentTree = parent
         for (tail in tails.dropLast(1)) {
-            val temp = ParentTree(tail.name, tail.tokenType, tail.flag)
+            val temp = ParentTree(tail.name, tail, tail.flag)
             current.children += temp
             current = temp
         }
         val last = tails.last()
         val generator = mapping ?: throw IllegalArgumentException("Syntax does not have generator")
-        current.children += ChildTree(last.tokenType, generator, name, last.flag)
+        current.children += ChildTree(last, name, last.flag)
         parent
     }
 }

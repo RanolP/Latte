@@ -18,3 +18,4 @@ operator fun TokenType.invoke(mapper: (Token) -> Node?, name: String? = null) = 
 operator fun TokenType.plus(syntaxPart: SyntaxPart<*>) = syntax + syntaxPart
 operator fun TokenType.plus(tokenType: TokenType) = syntax + tokenType.syntax
 operator fun SyntaxPart<*>.plus(tokenType: TokenType) = this + tokenType.syntax
+infix fun TokenType.or(tokenType: TokenType) = syntax or tokenType.syntax
