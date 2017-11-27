@@ -52,12 +52,16 @@ object Lexer {
             val currentLine = lines[line]
             while (position < currentLine.length) {
                 val currentChar = currentLine[position]
-                fun hasNext(pos: Int = position) = pos + 1 < currentLine.length
+                fun validateCursor(cursor: Int = position) = cursor < currentLine.length
+                fun hasNext(pos: Int = position) = validateCursor(pos + 1)
                 fun nextValue(pos: Int = position) = currentLine[pos + 1]
+                fun next(pos: Int = position) = nextValue(pos).also { position++ }
                 fun next(char: Char, pos: Int = position) = hasNext(pos) && nextValue(pos) == char
                 fun nextCursor(char: Char, pos: Int = position) = next(char, pos).also { if (it) position++ }
                 fun current(char: Char) = currentChar == char
                 fun currentCursor(char: Char) = current(char).also { if (it) position++ }
+                fun current(charRange: CharRange) = currentChar in charRange
+                fun currentCursor(charRange: CharRange) = current(charRange).also { if (it) position++ }
                 fun flush() = flush(position)
                 val queried = query(currentLine, position)
                 if (queried != null) {
@@ -95,6 +99,7 @@ object Lexer {
                                 continue
                             }
                             if (backslash) {
+                                // todo: extract to function
                                 when (ch) {
                                     '\'' -> literalBuilder.append('\'')
                                     '\"' -> literalBuilder.append('\"')
@@ -119,6 +124,26 @@ object Lexer {
                     }
                 } else if (currentCursor('\'')) {
                     // todo: char literal
+                } else if (current('0'..'9')) {
+                    val literalPosition = position
+                    val first = currentChar
+                    // todo: hex, oct, bin int literal
+                    val literalBuilder = StringBuilder()
+                    var dotted = false
+                    for (pos in position until currentLine.length) {
+                        val ch = currentLine[pos]
+                        if (ch == '.' && !dotted) {
+                            dotted = true
+                        } else if (ch !in '0'..'9') {
+                            break
+                        }
+                        literalBuilder.append(ch)
+                    }
+                    result.add(Token(if (dotted) TokenType.DECIMAL else TokenType.INTEGER,
+                            literalBuilder.toString(),
+                            line,
+                            literalPosition))
+                    position += literalBuilder.length
                 } else {
                     unknownBuilder.append(currentChar)
                 }
