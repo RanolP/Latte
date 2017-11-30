@@ -73,7 +73,7 @@ enum class TokenType(val keyword: Boolean = false, val char: Char? = null) {
     LEFT_CURLY_BRACE(char = '{'),
     RIGHT_CURLY_BRACE(char = '}'),
     ASSIGN(char = '='),
-    LINEFEED(char = '\n'),
+    LINEFEED,
     // Other
     INTEGER,
     DECIMAL,
