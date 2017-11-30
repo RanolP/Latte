@@ -157,6 +157,7 @@ object Lexer {
             }
             line++
         }
+        result += Token(TokenType.EOF, "", line, 0)
         return result.toList()
     }
 }
