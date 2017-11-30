@@ -73,13 +73,14 @@ enum class TokenType(val keyword: Boolean = false, val char: Char? = null) {
     LEFT_CURLY_BRACE(char = '{'),
     RIGHT_CURLY_BRACE(char = '}'),
     ASSIGN(char = '='),
-    LINEFEED,
     // Other
     INTEGER,
     DECIMAL,
     STRING,
     CHAR,
-    IDENTIFIER;
+    IDENTIFIER,
+    LINEFEED,
+    EOF;
 
     override fun toString(): String = char?.let { "'$it'" } ?: if (keyword) "'${super.toString().toLowerCase()}'" else super.toString().toLowerCase()
 }
