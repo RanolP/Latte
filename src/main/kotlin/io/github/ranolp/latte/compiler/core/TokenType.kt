@@ -1,6 +1,6 @@
 package io.github.ranolp.latte.compiler.core;
 
-enum class TokenType(val keyword: Boolean = false, val operator: Char? = null) {
+enum class TokenType(val keyword: Boolean = false, val char: Char? = null) {
     ABSTRACT(keyword = true),
     AS(keyword = true),
     BREAK(keyword = true),
@@ -53,26 +53,27 @@ enum class TokenType(val keyword: Boolean = false, val operator: Char? = null) {
     WHEN(keyword = true),
     WHILE(keyword = true),
     // Operator
-    PLUS(operator = '+'),
-    MINUS(operator = '-'),
-    ASTERISK(operator = '*'),
-    SLASH(operator = '/'),
-    PERCENT(operator = '%'),
-    AND(operator = '&'),
-    OR(operator = '|'),
-    QUESTION(operator = '?'),
-    COLON(operator = ':'),
-    SEMICOLON(operator = ';'),
-    DOT(operator = '.'),
-    COMMA(operator = ','),
-    EXCLAMATION(operator = '!'),
-    LEFT_BRACKET(operator = '('),
-    RIGHT_BRACKET(operator = ')'),
-    LEFT_BRACE(operator = '['),
-    RIGHT_BRACE(operator = ']'),
-    LEFT_CURLY_BRACE(operator = '{'),
-    RIGHT_CURLY_BRACE(operator = '}'),
-    ASSIGN(operator = '='),
+    PLUS(char = '+'),
+    MINUS(char = '-'),
+    ASTERISK(char = '*'),
+    SLASH(char = '/'),
+    PERCENT(char = '%'),
+    AND(char = '&'),
+    OR(char = '|'),
+    QUESTION(char = '?'),
+    COLON(char = ':'),
+    SEMICOLON(char = ';'),
+    DOT(char = '.'),
+    COMMA(char = ','),
+    EXCLAMATION(char = '!'),
+    LEFT_BRACKET(char = '('),
+    RIGHT_BRACKET(char = ')'),
+    LEFT_BRACE(char = '['),
+    RIGHT_BRACE(char = ']'),
+    LEFT_CURLY_BRACE(char = '{'),
+    RIGHT_CURLY_BRACE(char = '}'),
+    ASSIGN(char = '='),
+    LINEFEED(char = '\n'),
     // Other
     INTEGER,
     DECIMAL,
@@ -80,5 +81,5 @@ enum class TokenType(val keyword: Boolean = false, val operator: Char? = null) {
     CHAR,
     IDENTIFIER;
 
-    override fun toString(): String = operator?.let { "'$it'" } ?: if (keyword) "'${super.toString().toLowerCase()}'" else super.toString().toLowerCase()
+    override fun toString(): String = char?.let { "'$it'" } ?: if (keyword) "'${super.toString().toLowerCase()}'" else super.toString().toLowerCase()
 }

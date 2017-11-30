@@ -5,7 +5,7 @@ import io.github.ranolp.latte.compiler.core.TokenType
 import java.lang.StringBuilder
 
 object Lexer {
-    private val TYPES: Map<Char, TokenType> = TokenType.values().filter { it.operator != null }.associateBy { it.operator!! }
+    private val CHAR_MAP: Map<Char, TokenType> = TokenType.values().filter { it.char != null }.associateBy { it.char!! }
     private val KEYWORDS: Map<String, TokenType> = TokenType.values().filter { it.keyword }.associateBy { it.name.toLowerCase() }
 
     private fun query(line: String, from: Int): Pair<String, TokenType>? {
@@ -69,9 +69,9 @@ object Lexer {
                     flush()
                     position += queried.first.length - 1
                     result.add(Token(queried.second, queried.first, line, temp))
-                } else if (TYPES[currentChar] != null) {
+                } else if (CHAR_MAP[currentChar] != null) {
                     flush()
-                    result.add(Token(TYPES[currentChar]!!, currentChar.toString(), line, position))
+                    result.add(Token(CHAR_MAP[currentChar]!!, currentChar.toString(), line, position))
                 } else if (Character.isWhitespace(currentChar)) {
                     flush()
                 } else if (current('/') && next('/')) {
