@@ -149,10 +149,13 @@ object Lexer {
                 }
                 position++
             }
-            line++
             if (unknownBuilder.isNotEmpty()) {
                 flush(currentLine.length)
             }
+            if (line + 1 < lines.size) {
+                result.add(Token(TokenType.LINEFEED, "\n", line, currentLine.length))
+            }
+            line++
         }
         return result.toList()
     }
