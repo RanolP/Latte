@@ -50,12 +50,21 @@ object Parser {
             }
         }
 
-        operator fun <T : Node> invoke(run: (ParseContext) -> T?): T? {
+        fun <T> sandbox(run: ParseContext.() -> T?): T? {
             val from = cursor
             val result = run(this)
             if (result === null) {
                 cursor = from
                 return null
+            }
+            return result
+        }
+
+        fun <T> sandboxList(run: ParseContext.() -> List<T>): List<T> {
+            val from = cursor
+            val result = run(this)
+            if (result.isEmpty()) {
+                cursor = from
             }
             return result
         }
@@ -71,63 +80,93 @@ object Parser {
 
     private fun packageDeclaration(parseContext: ParseContext): PackageNode? {
         // todo: package declaration can has a annotation
-        return if (parseContext.current(PACKAGE)) {
-            val start = parseContext.current
-            parseContext.cursorNext()
-            val names = resolveIdentifiers(parseContext, DOT)
-            if (names.isEmpty()) {
-                throw ParseError("Package name must not be empty")
+        return parseContext.sandbox {
+            if (current(PACKAGE)) {
+                val start = current
+                cursorNext()
+                val names = resolveIdentifiers(parseContext, DOT)
+                if (names.isEmpty()) {
+                    throw ParseError("Package name must not be empty")
+                }
+                PackageNode(start, names)
+            } else {
+                null
             }
-            PackageNode(start, names)
-        } else {
-            null
         }
     }
 
     private fun importDeclaration(parseContext: ParseContext): ImportNode? {
-        return if (parseContext.current(IMPORT)) {
-            val start = parseContext.current
-            parseContext.cursorNext()
-            val names = resolveIdentifiers(parseContext, DOT)
-            if (names.isEmpty()) {
-                throw ParseError("Imported name must not be empty")
-            }
-            val asToken = if (parseContext.current(AS)) {
-                parseContext.cursorNext { next(IDENTIFIER, "Import local renaming requires a identifier") }
+        return parseContext.sandbox {
+            if (current(IMPORT)) {
+                val start = current
+                cursorNext()
+                val names = resolveIdentifiers(parseContext, DOT)
+                if (names.isEmpty()) {
+                    throw ParseError("Imported name must not be empty")
+                }
+                val asToken = if (current(AS)) {
+                    cursorNext { next(IDENTIFIER, "Import local renaming requires a identifier") }
+                } else {
+                    null
+                }
+                if (!isEOL) {
+                    throw ParseError("Import statement not ends in a line.")
+                }
+                ImportNode(start, names, asToken)
             } else {
                 null
             }
-            if (!parseContext.isEOL) {
-                throw ParseError("Import statement not ends in a line.")
-            }
-            ImportNode(start, names, asToken)
-        } else {
-            null
         }
     }
 
     private fun topLevelObjects(parseContext: ParseContext): TopLevelNode? {
-        return parseContext { functionDeclaration(it) }
+        return functionDeclaration(parseContext)
     }
 
     private fun functionDeclaration(parseContext: ParseContext, parent: ParentNode? = null): FunctionNode? {
-        val modifier = accessModifier(parseContext)
-        return if (parseContext.current(FN)) {
-            val token = parseContext.current
-            val name = parseContext.next(IDENTIFIER, "Function name must be a identifier").data
-            val arguments: List<Node> = if (parseContext.current(LEFT_BRACKET)) {
-                // argument
-                emptyList()
-            } else emptyList()
-            val childrens: List<Node> = if (parseContext.current(ASSIGN)) {
-                emptyList()
+        // todo: generic function
+        // todo: modifier
+        // todo: argument
+        return parseContext.sandbox {
+            if (current(FN)) {
+                val token = current
+                val name = next(IDENTIFIER, "Function name must be a identifier").data
+                val arguments: List<Node> = if (current(LEFT_BRACKET)) {
+                    // argument
+                    emptyList()
+                } else emptyList()
+                val childrens: List<Node> = if (current(ASSIGN)) {
+                    emptyList()
+                } else {
+                    block(parseContext)
+                }
+                if (childrens.isEmpty()) {
+                    throw ParseError("Function must have a function body")
+                }
+                FunctionNode(token, parent, name, arguments, childrens)
             } else {
-                emptyList()
+                null
             }
-            FunctionNode(token, parent, name, arguments, childrens)
-        } else {
-            null
         }
+    }
+
+    private fun block(parseContext: ParseContext): List<StatementNode> {
+        return parseContext.sandbox {
+            if (parseContext.current(LEFT_CURLY_BRACE)) {
+                parseContext.cursorNext()
+                val statements = statements(parseContext)
+                if (parseContext.current(RIGHT_CURLY_BRACE)) {
+                    parseContext.cursorNext()
+                    statements
+                } else null
+            } else null
+        } ?: emptyList()
+    }
+
+    private fun statements(parseContext: ParseContext): List<StatementNode> = greed(parseContext, this::statement)
+
+    private fun statement(parseContext: ParseContext): StatementNode? {
+        return null
     }
 
     // Utilities
@@ -156,6 +195,19 @@ object Parser {
         return result
     }
 
+    private fun <T : Node> greed(parseContext: ParseContext, function: (ParseContext) -> T?): List<T> {
+        return parseContext.sandboxList {
+            val results = mutableListOf<T>()
+            var result = function(parseContext)
+            while (result !== null) {
+                results += result
+                skipWhitespace()
+                result = function(this)
+            }
+            results
+        }
+    }
+
     private fun accessModifier(parseContext: ParseContext): Token? = when (parseContext.current.type) {
         PUBLIC, PROTECTED, PRIVATE -> {
             parseContext.cursorNext()
@@ -171,24 +223,10 @@ object Parser {
         val context = ParseContext(tokens, 0)
         context.skipWhitespace()
         // Preamble
-        val pkg = context(this::packageDeclaration)
+        val pkg = packageDeclaration(context)
         context.skipWhitespace()
-        val imports = mutableListOf<ImportNode>()
-        var import: ImportNode? = context(this::importDeclaration)
-        while (import !== null) {
-            imports += import
-            context.skipWhitespace()
-            import = context(this::importDeclaration)
-        }
-        val topLevelNodes = mutableListOf<TopLevelNode>()
-        context.skipWhitespace()
-        var node: TopLevelNode? = context(this::topLevelObjects)
-        while (node !== null) {
-            topLevelNodes += node
-            context.skipWhitespace()
-            node = context(this::topLevelObjects)
-        }
-
+        val imports = greed(context, this::importDeclaration)
+        val topLevelNodes = greed(context, this::topLevelObjects)
 
         // Top-level objects
         // class
