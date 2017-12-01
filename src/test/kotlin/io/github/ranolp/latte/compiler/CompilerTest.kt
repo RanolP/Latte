@@ -17,9 +17,9 @@ fn main {
     println("Hello, Latte!")
 }
 """)
-        for (token in tokens) {
+        /*for (token in tokens) {
             println(token)
-        }
+        }*/
         val parsed = Parser.parse(tokens)
         if(parsed !== null) {
             println("Parse Success\n\n${parsed.debug()}")
