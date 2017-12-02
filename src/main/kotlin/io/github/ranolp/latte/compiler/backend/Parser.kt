@@ -70,11 +70,6 @@ object Parser {
         }
     }
 
-    // literal
-
-    private fun int(token: Token): Node? = if (token.type === INTEGER) IntNode(token) else null
-    private fun decimal(token: Token): Node? = if (token.type === DECIMAL) DecimalNode(token) else null
-    private fun string(token: Token): Node? = if (token.type === STRING) StringNode(token) else null
 
     // Preamble
 
@@ -84,7 +79,7 @@ object Parser {
             if (current(PACKAGE)) {
                 val start = current
                 cursorNext()
-                val names = resolveIdentifiers(parseContext, DOT)
+                val names = resolveIdentifiers(this, DOT)
                 if (names.isEmpty()) {
                     throw ParseError("Package name must not be empty")
                 }
@@ -100,7 +95,7 @@ object Parser {
             if (current(IMPORT)) {
                 val start = current
                 cursorNext()
-                val names = resolveIdentifiers(parseContext, DOT)
+                val names = resolveIdentifiers(this, DOT)
                 if (names.isEmpty()) {
                     throw ParseError("Imported name must not be empty")
                 }
@@ -138,7 +133,7 @@ object Parser {
                 val childrens: List<Node> = if (current(ASSIGN)) {
                     emptyList()
                 } else {
-                    block(parseContext)
+                    block(this)
                 }
                 if (childrens.isEmpty()) {
                     throw ParseError("Function must have a function body")
@@ -152,11 +147,11 @@ object Parser {
 
     private fun block(parseContext: ParseContext): List<StatementNode> {
         return parseContext.sandbox {
-            if (parseContext.current(LEFT_CURLY_BRACE)) {
-                parseContext.cursorNext()
-                val statements = statements(parseContext)
-                if (parseContext.current(RIGHT_CURLY_BRACE)) {
-                    parseContext.cursorNext()
+            if (current(LEFT_CURLY_BRACE)) {
+                cursorNext()
+                val statements = statements(this)
+                if (current(RIGHT_CURLY_BRACE)) {
+                    cursorNext()
                     statements
                 } else null
             } else null
@@ -166,6 +161,50 @@ object Parser {
     private fun statements(parseContext: ParseContext): List<StatementNode> = greed(parseContext, this::statement)
 
     private fun statement(parseContext: ParseContext): StatementNode? {
+        return expression(parseContext)
+    }
+
+    private fun expression(parseContext: ParseContext): ExpressionNode? {
+
+    }
+
+    private fun functionCall(parseContext: ParseContext)
+
+    private fun disjunction(parseContext: ParseContext): ExpressionNode? {
+
+    }
+    // literal
+
+    private fun int(token: Token): IntNode? = if (token.type === INTEGER) IntNode(token) else null
+    private fun decimal(token: Token): DecimalNode? = if (token.type === DECIMAL) DecimalNode(token) else null
+    private fun string(token: Token): StringNode? = if (token.type === STRING) StringNode(token) else null
+    private fun boolean(token: Token): BooleanNode? = if (token.type in listOf(TRUE,
+            FALSE)) BooleanNode(token) else null
+
+    private fun literal(token: Token): LiteralNode? = int(token) ?: decimal(token) ?: string(token) ?: boolean(token)
+
+    // types
+    private fun type(parseContext: ParseContext): TypeNode? {
+        return typeReference(parseContext)
+    }
+
+    private fun typeReference(parseContext: ParseContext): TypeReferenceNode? {
+        return parseContext.sandbox {
+            if (current(LEFT_BRACKET)) {
+                cursorNext()
+                val ref = typeReference(this)
+                if (current(RIGHT_BRACKET)) {
+                    ref
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } ?: functionType(parseContext)
+    }
+
+    private fun functionType(parseContext: ParseContext): FunctionTypeNode? {
         return null
     }
 
@@ -210,8 +249,7 @@ object Parser {
 
     private fun accessModifier(parseContext: ParseContext): Token? = when (parseContext.current.type) {
         PUBLIC, PROTECTED, PRIVATE -> {
-            parseContext.cursorNext()
-            parseContext.before
+            parseContext.cursorNext { current }
         }
         else -> {
             null
