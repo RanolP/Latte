@@ -9,8 +9,13 @@ sealed class ParentNode() {
 
 }
 
-class FunctionNode(token: Token, parent: ParentNode?, val functionName: String, val arguments: List<Node>, val children: List<Node>) : TopLevelNode(
+class FunctionNode(token: Token, val parent: ParentNode?, val functionName: String, val arguments: List<StatementNode>, val children: List<StatementNode>) : TopLevelNode(
         "Function",
         token) {
-    override fun debug(depth: Int): String = " " * depth + "FunctionNode($functionName)"
+    override fun debug(depth: Int): String = " " * depth + "FunctionNode($functionName)\n" + " " * (depth + 1) + "Arguments\n" + arguments.joinToString(
+            "\n") {
+        it.debug(depth + 2)
+    } + " " * (depth + 1) + "Codes\n" + children.joinToString("\n") {
+        it.debug(depth + 2)
+    }
 }

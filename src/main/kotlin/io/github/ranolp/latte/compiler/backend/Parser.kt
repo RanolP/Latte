@@ -19,7 +19,7 @@ object Parser {
         val next: Token
             get() = get(cursor + 1)
         val isEOL: Boolean
-            get() = when (current.type) {
+            get() = !hasNext || when (current.type) {
                 SEMICOLON, LINEFEED -> true
                 else -> false
             }
@@ -29,7 +29,7 @@ object Parser {
         fun current(tokenType: TokenType): Boolean = current.type === tokenType
         fun next(tokenType: TokenType): Boolean = next.type === tokenType
         fun current(tokenType: TokenType, cause: String): Token = if (current(tokenType)) {
-            get(cursorNext())
+            current
         } else throw ParseError(cause)
 
         fun next(tokenType: TokenType, cause: String): Token = if (next(tokenType)) {
@@ -45,7 +45,7 @@ object Parser {
         }
 
         fun skipWhitespace() {
-            while (isEOL) {
+            while (isEOL && hasNext) {
                 cursorNext()
             }
         }
@@ -82,6 +82,9 @@ object Parser {
                 val names = resolveIdentifiers(this, DOT)
                 if (names.isEmpty()) {
                     throw ParseError("Package name must not be empty")
+                }
+                if (!isEOL) {
+                    throw ParseError("Package statement not ends in a line.")
                 }
                 PackageNode(start, names)
             } else {
@@ -124,13 +127,13 @@ object Parser {
         // todo: argument
         return parseContext.sandbox {
             if (current(FN)) {
-                val token = current
-                val name = next(IDENTIFIER, "Function name must be a identifier").data
-                val arguments: List<Node> = if (current(LEFT_BRACKET)) {
+                val token = cursorNext { current }
+                val name = cursorNext { current(IDENTIFIER, "Function name must be a identifier").data }
+                val arguments: List<ExpressionNode> = if (current(LEFT_BRACKET)) {
                     // argument
                     emptyList()
                 } else emptyList()
-                val childrens: List<Node> = if (current(ASSIGN)) {
+                val childrens: List<StatementNode> = if (current(ASSIGN)) {
                     emptyList()
                 } else {
                     block(this)
@@ -146,16 +149,17 @@ object Parser {
     }
 
     private fun block(parseContext: ParseContext): List<StatementNode> {
-        return parseContext.sandbox {
+        return parseContext.sandboxList {
+            skipWhitespace()
             if (current(LEFT_CURLY_BRACE)) {
                 cursorNext()
                 val statements = statements(this)
                 if (current(RIGHT_CURLY_BRACE)) {
                     cursorNext()
                     statements
-                } else null
-            } else null
-        } ?: emptyList()
+                } else emptyList()
+            } else emptyList()
+        }
     }
 
     private fun statements(parseContext: ParseContext): List<StatementNode> = greed(parseContext, this::statement)
@@ -164,14 +168,51 @@ object Parser {
         return expression(parseContext)
     }
 
-    private fun expression(parseContext: ParseContext): ExpressionNode? {
-
+    private fun expression(parseContext: ParseContext): StatementNode? {
+        return functionCall(parseContext) ?: literal(parseContext)
     }
 
-    private fun functionCall(parseContext: ParseContext)
+    private fun functionCall(parseContext: ParseContext): FunctionCallNode? {
+        return parseContext.sandbox {
+            skipWhitespace()
+            if (current(IDENTIFIER)) {
+                val token = cursorNext { current }
+                if (current(LEFT_BRACKET)) {
+                    cursorNext()
+                    val arguments = mutableListOf<Node>()
+                    while (hasNext) {
+                        val expr = expression(this)
+                        if (expr !== null) {
+                            arguments += expr
+                            if (current(RIGHT_BRACKET)) {
+                                cursorNext()
+                                break
+                            } else if (current(COMMA)) {
+                                cursorNext()
+                            } else {
+                                throw ParseError("Expected \',\' or \')\', but got \"${current.data}\" at line ${current.line} c ${current.position}")
+                            }
+                        } else if (current(RIGHT_BRACKET)) {
+                            break
+                        } else if (isEOL) {
+                            cursorNext()
+                        } else {
+                            // what the fuck
+                        }
+                    }
+                    FunctionCallNode(null, token, arguments)
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        }
+    }
 
-    private fun disjunction(parseContext: ParseContext): ExpressionNode? {
+    private fun disjunction(parseContext: ParseContext): StatementNode? {
 
+        return null
     }
     // literal
 
@@ -182,6 +223,15 @@ object Parser {
             FALSE)) BooleanNode(token) else null
 
     private fun literal(token: Token): LiteralNode? = int(token) ?: decimal(token) ?: string(token) ?: boolean(token)
+
+    private fun literal(parseContext: ParseContext): LiteralNode? = parseContext.sandbox {
+        val literal = literal(current)
+        if (literal !== null) {
+            cursorNext { literal }
+        } else {
+            null
+        }
+    }
 
     // types
     private fun type(parseContext: ParseContext): TypeNode? {
@@ -257,7 +307,7 @@ object Parser {
     }
 
 
-    fun parse(tokens: List<Token>): Node? {
+    fun parse(tokens: List<Token>): LatteFileNode? {
         val context = ParseContext(tokens, 0)
         context.skipWhitespace()
         // Preamble

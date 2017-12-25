@@ -8,8 +8,10 @@ object Lexer {
     private val CHAR_MAP: Map<Char, TokenType> = TokenType.values().filter { it.char != null }.associateBy { it.char!! }
     private val KEYWORDS: Map<String, TokenType> = TokenType.values().filter { it.keyword }.associateBy { it.name.toLowerCase() }
 
+    private fun Char.isIgnoreable() = isWhitespace() || this in CHAR_MAP.keys
+
     private fun query(line: String, from: Int): Pair<String, TokenType>? {
-        if (from > 0 && !line[from - 1].isWhitespace()) {
+        if (from > 0 && !line[from - 1].isIgnoreable()) {
             return null
         }
         val temp = KEYWORDS.keys.toMutableSet()
@@ -143,7 +145,7 @@ object Lexer {
                             literalBuilder.toString(),
                             line,
                             literalPosition))
-                    position += literalBuilder.length
+                    position += literalBuilder.length - 1
                 } else {
                     unknownBuilder.append(currentChar)
                 }
