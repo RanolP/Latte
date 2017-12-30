@@ -9,11 +9,16 @@ buildscript {
     }
 }
 
+plugins {
+    id "org.sonarqube" version "2.5"
+}
+
 group 'io.github.ranolp.latte'
 version '0.1.0-SNAPSHOT'
 
 apply plugin: 'kotlin'
 apply plugin: 'application'
+apply plugin: 'jacoco'
 
 sourceCompatibility = 1.8
 mainClassName = 'io.github.ranolp.latte.compiler.CompilerMainKt'
@@ -42,4 +47,11 @@ jar {
         )
     }
     archiveName 'lattec.jar'
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectName", "Latte"
+        property "sonar.projectKey", "LatteLang:Latte"
+    }
 }
